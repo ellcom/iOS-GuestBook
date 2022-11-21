@@ -13,13 +13,25 @@ class ViewController: UITableViewController {
     var guestbook:GuestBook?
     
     func update() {
-        ApiController.getMessages(callback: { data,error in
+       /* ApiController.getMessages(callback: { data,error in
             
             if let data = data {
                 self.guestbook = data;
                 self.tableView.reloadData()
             }
-        });
+        });*/
+        
+        Task {
+            let guestbook = await ApiController.asyncGetMessages()
+            
+            if guestbook != nil {
+                DispatchQueue.main.async {
+                    self.guestbook = guestbook
+                    self.tableView.reloadData()
+                }
+            }
+        }
+        
     }
     
     override func viewDidLoad() {
@@ -52,12 +64,22 @@ class ViewController: UITableViewController {
         
         alert.addAction(UIAlertAction(title: "Okay", style: .default, handler: { [weak alert, weak self] (_) in
             if let message = alert?.textFields?.first?.text{
-                ApiController.postMessage(message: message, callback: { (response, error) in
+                
+                /*ApiController.postMessage(message: message, callback: { (response, error) in
                     if error == nil && response?.code == 1
                     {
                         self?.update()
                     }
                 })
+                 */
+                Task { [weak self] in
+                    let guestbook = await ApiController.asyncPostMessage(message:message);
+                
+                    if( guestbook != nil )
+                    {
+                            self?.update();
+                    }
+                }
             }
         }))
         

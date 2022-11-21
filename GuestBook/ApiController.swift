@@ -21,10 +21,44 @@ struct GuestBook: Codable {
 
 class ApiController
 {
+    static let urlMessages = URL(string: "http://localhost:3000/messages")
+    static let urlStringAddMessage = String("http://localhost:3000/addMessage")
+    
+    @available(iOS 15.0, *)
+    static func asyncGetMessages() async -> GuestBook?
+    {
+        do {
+            
+            let (data, _) = try await URLSession.shared.data(from: self.urlMessages!)
+            let guestbook = try JSONDecoder().decode(GuestBook.self, from: data)
+            return guestbook
+            
+        } catch {
+            return nil
+        }
+
+    }
+    
+    @available(iOS 15.0, *)
+    static func asyncPostMessage(message: String) async -> GuestBook?
+    {
+        var url = URLComponents(string: self.urlStringAddMessage)!
+        url.queryItems = [ URLQueryItem(name: "message", value: message)]
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url.url!)
+            let jsonData = try JSONDecoder().decode(GuestBook.self, from: data)
+            
+            return jsonData
+        }
+        catch {
+            return nil;
+        }
+    }
+    
     static func getMessages(callback:@escaping (GuestBook?, Error?)->Void)
     {
-        let url = URL(string: "http://localhost:3000/messages")
-        let task = URLSession.shared.dataTask(with: url!) { (data, urlResponse, error) in
+        let task = URLSession.shared.dataTask(with: self.urlMessages!) { (data, urlResponse, error) in
             guard error == nil else {
                 DispatchQueue.main.async {
                     callback(nil,error)
@@ -51,7 +85,7 @@ class ApiController
     
     static func postMessage(message: String, callback:@escaping (GuestBook?, Error?)->Void)
     {
-        var url = URLComponents(string: "http://localhost:3000/addMessage")!
+        var url = URLComponents(string: self.urlStringAddMessage)!
         url.queryItems = [ URLQueryItem(name: "message", value: message)]
         
         let task = URLSession.shared.dataTask(with: url.url!) { (data, urlResponse, error) in
